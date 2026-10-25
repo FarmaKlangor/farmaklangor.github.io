@@ -1,0 +1,15 @@
+# BioFarmLab Wiedza
+
+BioFarmLab Wiedza is the public knowledge base of BioFarmLab about soil biology, compost, regenerative agriculture, biological analysis and composting technology.
+
+Canonical site: https://wiedza.biofarmlab.pl/
+
+Language hubs:
+- Polish: https://wiedza.biofarmlab.pl/pl/
+- English: https://wiedza.biofarmlab.pl/en/
+- German: https://wiedza.biofarmlab.pl/de/
+- French: https://wiedza.biofarmlab.pl/fr/
+- Italian: https://wiedza.biofarmlab.pl/it/
+- Spanish: https://wiedza.biofarmlab.pl/es/
+
+Main organization: https://biofarmlab.pl/
