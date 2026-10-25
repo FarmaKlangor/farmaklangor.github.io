@@ -1,1 +1,0 @@
-# farmaklangor.github.io
