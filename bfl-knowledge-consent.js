@@ -131,6 +131,9 @@
       (window.clarity.q = window.clarity.q || []).push(arguments);
     };
     window.clarity('consentv2', { ad_Storage: 'denied', analytics_Storage: 'granted' });
+    // Required Google Tag Manager page-load event; tags using All Pages rely on gtm.js.
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
     var gtm = document.createElement('script');
     gtm.async = true;
     gtm.src = 'https://www.googletagmanager.com/gtm.js?id=' + encodeURIComponent(GTM_ID);
