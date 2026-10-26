@@ -8,6 +8,7 @@
   var MAX_AGE = 60 * 60 * 24 * 365;
   var GTM_ID = 'GTM-T99HRRTV';
   var CLARITY_ID = 'yjkcv3h47s';
+  var GA4_ID = 'G-DZKS3QW6BM'; // Google tag currently configured for BioFarmLab checkout in public GTM container.
   var started = false;
   var initialized = false;
   var panel = null;
@@ -123,6 +124,41 @@
       if (v === 'denied') window.clarity('consent', false);
     }
   }
+  function startGa4() {
+    if (window.__bflKnowledgeGa4Started) return;
+    window.__bflKnowledgeGa4Started = true;
+    // The published GTM container's GA4 tags have host-bound triggers for the checkout
+    // domain, not wiedza.biofarmlab.pl. Configure the same GA4 destination directly here.
+    window.gtag('js', new Date());
+    window.gtag('config', GA4_ID, { send_page_view: true });
+    var script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(GA4_ID);
+    document.head.appendChild(script);
+  }
+
+  function trackKnowledgeEvent(event) {
+    if (getConsent() !== 'granted' || typeof window.gtag !== 'function') return;
+    var link = event.target && event.target.closest
+      ? event.target.closest('a[data-event]')
+      : null;
+    if (!link) return;
+    var eventName = link.getAttribute('data-event');
+    if (!/^knowledge_[a-z0-9_]+$/.test(eventName || '')) return;
+    var context = link.closest('[data-article-slug]');
+    var contextData = context ? context.dataset : {};
+    var payload = {
+      article_slug: link.dataset.articleSlug || contextData.articleSlug || '',
+      article_language: link.dataset.articleLanguage ||
+        contextData.articleLanguage || document.documentElement.lang,
+      article_category: link.dataset.articleCategory || contextData.articleCategory || '',
+      destination_type: link.dataset.destinationType || '',
+      destination_slug: link.dataset.destinationSlug || '',
+      destination_url: link.href
+    };
+    window.gtag('event', eventName, payload);
+  }
+
   function startTracking() {
     if (started) return;
     started = true;
@@ -142,6 +178,7 @@
     clarity.async = true;
     clarity.src = 'https://www.clarity.ms/tag/' + encodeURIComponent(CLARITY_ID);
     document.head.appendChild(clarity);
+    startGa4();
   }
   function hidePanel() {
     if (panel) panel.hidden = true;
@@ -169,6 +206,7 @@
   });
 
   initConsent();
+  document.addEventListener('click', trackKnowledgeEvent);
   if (getConsent() === 'granted') {
     updateConsent('granted');
     startTracking();
