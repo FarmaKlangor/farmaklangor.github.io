@@ -205,6 +205,7 @@
     setConsent(e.detail && e.detail.granted ? 'granted' : 'denied');
   });
 
+  installDebugNetworkCapture();
   initConsent();
   document.addEventListener('click', trackKnowledgeEvent);
   if (getConsent() === 'granted') {
@@ -218,6 +219,45 @@
     if (cls) el.className = cls;
     return el;
   }
+  function installDebugNetworkCapture() {
+    var enabled = false;
+    try { enabled = new URLSearchParams(location.search).get('bfl_debug') === '1'; }
+    catch (_) {}
+    if (!enabled) return;
+    var attempts = window.__bflAnalyticsOutboundAttempts = [];
+    function record(url, method) {
+      try {
+        var u = new URL(String(url), location.href);
+        if (/google-analytics\.com|clarity\.ms/i.test(u.hostname)) {
+          attempts.push(method + ' ' + u.hostname + u.pathname);
+        }
+      } catch (_) {}
+    }
+    if (typeof window.fetch === 'function') {
+      var originalFetch = window.fetch;
+      window.fetch = function (input) {
+        record(typeof input === 'string' ? input : input && input.url, 'fetch');
+        return originalFetch.apply(this, arguments);
+      };
+    }
+    if (window.navigator && typeof window.navigator.sendBeacon === 'function') {
+      try {
+        var originalBeacon = window.navigator.sendBeacon.bind(window.navigator);
+        window.navigator.sendBeacon = function (url, data) {
+          record(url, 'beacon');
+          return originalBeacon(url, data);
+        };
+      } catch (_) {}
+    }
+    if (window.XMLHttpRequest && window.XMLHttpRequest.prototype) {
+      var originalOpen = window.XMLHttpRequest.prototype.open;
+      window.XMLHttpRequest.prototype.open = function (method, url) {
+        record(url, 'xhr');
+        return originalOpen.apply(this, arguments);
+      };
+    }
+  }
+
   function showDiagnosticsIfRequested() {
     var enabled = false;
     try { enabled = new URLSearchParams(location.search).get('bfl_debug') === '1'; }
@@ -251,7 +291,11 @@
         'Clarity resource: ' + requestExists('clarity.ms/tag/' + CLARITY_ID),
         'Clarity API calls: ' + resources.filter(function (x) { return /clarity\.ms\/(collect|c\.gif|e\/)/.test(x); }).length,
         'Google Tag Manager init: ' + (window.dataLayer || []).some(function (x) { return x && x.event === 'gtm.js'; }),
-        'GA4 config queued: ' + (window.dataLayer || []).some(function (x) { return x && x[0] === 'config' && x[1] === GA4_ID; })
+        'GA4 config queued: ' + (window.dataLayer || []).some(function (x) { return x && x[0] === 'config' && x[1] === GA4_ID; }),
+        'GTM container active: ' + !!(window.google_tag_manager && window.google_tag_manager[GTM_ID]),
+        'GA4 cookie present: ' + /(?:^|;\\s*)_ga=/.test(document.cookie),
+        'Clarity cookie present: ' + /(?:^|;\\s*)_clck=/.test(document.cookie),
+        'Tracked outgoing requests: ' + (window.__bflAnalyticsOutboundAttempts || []).join(' | ')
       ].join('\n');
     }
     render();
