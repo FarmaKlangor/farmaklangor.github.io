@@ -1,0 +1,29 @@
+name: Install privacy-gated analytics on public Knowledge pages
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bfl-knowledge-consent.js'
+      - 'scripts/install-consent-pages.mjs'
+      - '.github/workflows/install-knowledge-consent.yml'
+permissions:
+  contents: write
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate privacy script
+        run: node --check bfl-knowledge-consent.js
+      - name: Gate analytics across all public pages
+        run: node scripts/install-consent-pages.mjs
+      - name: Save pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html de en es fr it pl
+          git diff --cached --quiet || (git commit -m "Enable privacy-gated analytics on all 41 Knowledge pages" && git push origin HEAD:main)
