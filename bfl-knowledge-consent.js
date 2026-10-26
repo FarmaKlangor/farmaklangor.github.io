@@ -218,6 +218,48 @@
     if (cls) el.className = cls;
     return el;
   }
+  function showDiagnosticsIfRequested() {
+    var enabled = false;
+    try { enabled = new URLSearchParams(location.search).get('bfl_debug') === '1'; }
+    catch (_) {}
+    if (!enabled) return;
+    var diagnostics = element('pre', null, 'bfl-knowledge-debug');
+    diagnostics.id = 'bfl-knowledge-debug';
+    diagnostics.setAttribute('aria-live', 'polite');
+    diagnostics.style.cssText = 'white-space:pre-wrap;overflow-wrap:anywhere;' +
+      'font:12px/1.5 ui-monospace,monospace;background:#f4f5ef;color:#20372d;' +
+      'border:1px solid #214d37;padding:14px;margin:16px auto;max-width:750px;';
+    document.body.appendChild(diagnostics);
+    function render() {
+      var scripts = Array.from(document.querySelectorAll('script[src]'))
+        .map(function (x) { return x.src; });
+      var resources = [];
+      try { resources = performance.getEntriesByType('resource').map(function (x) { return x.name; }); }
+      catch (_) {}
+      function scriptExists(part) { return scripts.some(function (x) { return x.indexOf(part) !== -1; }); }
+      function requestExists(part) { return resources.some(function (x) { return x.indexOf(part) !== -1; }); }
+      function requestCount(part) { return resources.filter(function (x) { return x.indexOf(part) !== -1; }).length; }
+      diagnostics.textContent = [
+        'BioFarmLab Knowledge — analytics diagnostic (requests observed, not provider confirmations)',
+        'Consent: ' + (getConsent() || 'not decided'),
+        'GTM node: ' + scriptExists('/gtm.js?id=' + GTM_ID),
+        'GTM resource: ' + requestExists('/gtm.js?id=' + GTM_ID),
+        'Google GA4 node: ' + scriptExists('/gtag/js?id=' + GA4_ID),
+        'Google GA4 resource: ' + requestExists('/gtag/js?id=' + GA4_ID),
+        'GA4 collect requests: ' + requestCount('google-analytics.com/g/collect'),
+        'Clarity node: ' + scriptExists('clarity.ms/tag/' + CLARITY_ID),
+        'Clarity resource: ' + requestExists('clarity.ms/tag/' + CLARITY_ID),
+        'Clarity API calls: ' + resources.filter(function (x) { return /clarity\.ms\/(collect|c\.gif|e\/)/.test(x); }).length,
+        'Google Tag Manager init: ' + (window.dataLayer || []).some(function (x) { return x && x.event === 'gtm.js'; }),
+        'GA4 config queued: ' + (window.dataLayer || []).some(function (x) { return x && x[0] === 'config' && x[1] === GA4_ID; })
+      ].join('\n');
+    }
+    render();
+    window.addEventListener('click', function () { setTimeout(render, 250); setTimeout(render, 3500); });
+    setTimeout(render, 2000);
+    setTimeout(render, 7000);
+  }
+
   function makeUI() {
     var style = document.createElement('style');
     style.textContent =
@@ -268,6 +310,10 @@
     var footer = document.querySelector('.footer-inner') || document.querySelector('footer') || document.body;
     footer.appendChild(trigger);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', makeUI);
-  else makeUI();
+  function initUI() {
+    makeUI();
+    showDiagnosticsIfRequested();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initUI);
+  else initUI();
 })();
