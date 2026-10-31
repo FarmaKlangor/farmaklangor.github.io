@@ -91,7 +91,7 @@
 
     // Do not queue historical CTA clicks before explicit consent.
     if (window.BioFarmLabConsent?.getAnalyticsConsent?.() === 'granted') {
-      window.dataLayer.push(payload);
+      if (window.BioFarmLabConsent?.getAnalyticsConsent?.() === 'granted') window.dataLayer.push(payload);
     }
   });
 </script><script src="/bfl-knowledge-consent.js" defer></script></body></html>
