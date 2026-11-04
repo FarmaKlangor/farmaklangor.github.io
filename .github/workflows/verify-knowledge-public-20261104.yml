@@ -1,0 +1,64 @@
+name: Verify public Knowledge repair 2026-11-04
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-knowledge-public-20261104.yml'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify public HTTP responses and deployed content
+        shell: bash
+        run: |
+          python - <<'PY'
+          import concurrent.futures, hashlib, json, time, urllib.request, urllib.error
+          from pathlib import Path
+          base = 'https://wiedza.biofarmlab.pl'
+          files = ['en/practical-soil-biology-course/index.html','en/why-compost-pile-is-not-heating/index.html','pl/index.html','pl/jak-dobrac-przewracarke-kompostu/index.html','pl/jak-stosowac-gotowy-kompost/index.html','sitemap-0.xml','robots.txt']
+          results = []
+          def check(rel):
+              suffix = '/' + rel.replace('index.html','')
+              expected = hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+              last = None
+              for attempt in range(12):
+                  try:
+                      req = urllib.request.Request(base+suffix+'?verification=20261104-'+str(attempt), headers={'User-Agent':'BioFarmLab-Knowledge-Verification/1.0'})
+                      with urllib.request.urlopen(req, timeout=20) as response:
+                          body = response.read()
+                          status = response.status
+                      actual = hashlib.sha256(body).hexdigest()
+                      if status == 200 and actual == expected:
+                          return {'path':suffix,'status':status,'matches_committed_content':True}
+                      last = {'status':status,'matches_committed_content':actual==expected}
+                  except Exception as exc:
+                      last = str(exc)
+                  time.sleep(8)
+              raise RuntimeError(rel+': '+str(last))
+          with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+              results = list(pool.map(check,files))
+          rejected = base+'/pl/przewracarka-czy-rozsiewacz-kompostu/?verification=20261104'
+          try:
+              with urllib.request.urlopen(rejected, timeout=20) as response:
+                  rejected_status = response.status
+          except urllib.error.HTTPError as exc:
+              rejected_status = exc.code
+          assert rejected_status in (404,410), rejected_status
+          assert 'Living Soil Shortcut: learning for your own land' in Path(files[0]).read_text()
+          assert 'Our Polish-language course' not in Path(files[0]).read_text()
+          assert '/pl/przewracarka-czy-rozsiewacz-kompostu/' not in Path('sitemap-0.xml').read_text()
+          report = {'public_verification':'PASS','checked_pages':results,'rejected_article_http_status':rejected_status,'ai_generation_calls':0}
+          Path('/tmp/knowledge-public-verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-public-verification-20261104
+          path: /tmp/knowledge-public-verification.json
