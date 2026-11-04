@@ -1,0 +1,61 @@
+name: Repair existing Knowledge discovery and English course routing
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-knowledge-discovery-20261104.yml'
+      - 'scripts/repair-knowledge-discovery-20261104.py'
+permissions:
+  contents: write
+concurrency:
+  group: knowledge-discovery-repair
+  cancel-in-progress: false
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install HTML parser
+        run: python -m pip install 'beautifulsoup4==4.12.3'
+      - name: Validate repair script
+        run: python -m py_compile scripts/repair-knowledge-discovery-20261104.py
+      - name: Repair and validate existing pages
+        run: python scripts/repair-knowledge-discovery-20261104.py
+      - name: Save checked changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import pathlib, subprocess
+          paths = pathlib.Path('/tmp/knowledge-changed-files.txt').read_text().splitlines()
+          allowed = {'en/practical-soil-biology-course/index.html','sitemap-0.xml'}
+          for p in paths:
+              assert p in allowed or (p.endswith('/index.html') and p.split('/')[0] in ('pl','en','de','fr','it','es','cs')), p
+          changed = subprocess.check_output(['git','diff','--name-only'], text=True).splitlines()
+          assert set(changed) == set(paths), (changed, paths)
+          if paths:
+              subprocess.run(['git','add','--'] + paths, check=True)
+          PY
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Fix English course references, connect existing articles and refresh Knowledge sitemap'
+            git push origin HEAD:main
+          fi
+          git rev-parse HEAD
+      - name: Keep verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowledge-discovery-repair-20261104
+          path: |
+            /tmp/knowledge-repair-report.json
+            /tmp/knowledge-changed-files.txt
+          if-no-files-found: ignore
