@@ -12,4 +12,9 @@ Language hubs:
 - Italian: https://wiedza.biofarmlab.pl/it/
 - Spanish: https://wiedza.biofarmlab.pl/es/
 
+- Czech: https://wiedza.biofarmlab.pl/cs/
+- Hungarian: https://wiedza.biofarmlab.pl/hu/
+- Romanian: https://wiedza.biofarmlab.pl/ro/
+- Thai: https://wiedza.biofarmlab.pl/th/
+
 Main organization: https://biofarmlab.pl/
