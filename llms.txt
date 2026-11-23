@@ -18,3 +18,5 @@ Language hubs:
 - Thai: https://wiedza.biofarmlab.pl/th/
 
 Main organization: https://biofarmlab.pl/
+
+Living Soil Shortcut app and complete course: https://wiedza.biofarmlab.pl/en/living-soil-shortcut-app-course/
