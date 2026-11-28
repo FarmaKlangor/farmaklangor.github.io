@@ -15,6 +15,7 @@
   var trigger = null;
   var locale = (document.documentElement.lang || 'pl').split('-')[0].toLowerCase();
   var copy = {
+    pt:{title:'Privacidade e estatísticas',body:'Com a sua autorização, usamos Google Analytics e Microsoft Clarity para compreender quais os artigos que ajudam os leitores. Sem autorização, estas ferramentas não são carregadas.',yes:'Aceitar',no:'Recusar',settings:'Preferências de cookies'},
     pl: {
       title: 'Prywatność i analityka',
       body: 'Za Twoją zgodą używamy Google Analytics i Microsoft Clarity, aby sprawdzać, które artykuły pomagają czytelnikom. Bez zgody nie uruchamiamy tych narzędzi.',
